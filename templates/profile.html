@@ -1,0 +1,136 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>NextStep | My Profile</title>
+    <!-- Use a simple modern look similar to existing templates -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <style>
+        body { background-color: #f8f9fa; }
+        .profile-container {
+            max-width: 800px;
+            margin: 50px auto;
+            background: white;
+            padding: 30px;
+            border-radius: 10px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+        }
+        .section-header { margin-bottom: 20px; border-bottom: 2px solid #e9ecef; padding-bottom: 10px; }
+        .skill-badge {
+            margin-right: 5px; margin-bottom: 5px;
+            background-color: #0d6efd;
+            color: white;
+            padding: 5px 10px;
+            border-radius: 20px;
+            display: inline-block;
+        }
+    </style>
+</head>
+<body>
+    <!-- Navbar -->
+    <nav class="navbar navbar-expand-lg navbar-dark bg-dark">
+        <div class="container">
+            <a class="navbar-brand" href="{{ url_for('student_index') }}">NextStep</a>
+            <div class="collapse navbar-collapse">
+                <ul class="navbar-nav ms-auto">
+                    <li class="nav-item">
+                        <a class="nav-link" href="{{ url_for('student_index') }}">Dashboard</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link active" href="{{ url_for('profile') }}">Profile</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="{{ url_for('logout') }}">Logout</a>
+                    </li>
+                </ul>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Main Content -->
+    <div class="container">
+        <!-- Flash Messages -->
+        {% with messages = get_flashed_messages(with_categories=true) %}
+            {% if messages %}
+                {% for category, message in messages %}
+                    <div class="alert alert-{{ category }} mt-3">{{ message }}</div>
+                {% endfor %}
+            {% endif %}
+        {% endwith %}
+
+        <div class="profile-container">
+            <h2 class="text-center mb-4">My Career Profile</h2>
+            
+            <div class="row">
+                <!-- Left Column: Resume Upload & View -->
+                <div class="col-md-5">
+                    <h4 class="section-header">Resume</h4>
+                    <form action="{{ url_for('upload_resume') }}" method="POST" enctype="multipart/form-data" class="mb-4">
+                        <div class="mb-3">
+                            <label for="resume" class="form-label">Upload PDF or DOCX format</label>
+                            <input class="form-control" type="file" id="resume" name="resume" accept=".pdf,.docx" required>
+                        </div>
+                        <button type="submit" class="btn btn-primary w-100">Upload & Extract Skills</button>
+                    </form>
+
+                    {% if user.resume_url %}
+                        <div class="alert alert-info text-center">
+                            <strong>Current Resume:</strong><br>
+                            <a href="{{ user.resume_url }}" target="_blank" class="btn btn-sm btn-outline-info mt-2">View Uploaded Document</a>
+                        </div>
+                    {% else %}
+                        <p class="text-muted text-center"><small>No resume uploaded yet.</small></p>
+                    {% endif %}
+                </div>
+
+                <!-- Right Column: Profile Form -->
+                <div class="col-md-7">
+                    <h4 class="section-header">Personal Details</h4>
+                    <form action="{{ url_for('profile') }}" method="POST">
+                        <div class="mb-3">
+                            <label class="form-label"><strong>Name:</strong></label>
+                            <input type="text" class="form-control" value="{{ user.name }}" disabled>
+                            <small class="text-muted">Registered Email: {{ user.email }}</small>
+                        </div>
+
+                        <div class="mb-3">
+                            <label for="education" class="form-label"><strong>Education</strong></label>
+                            <textarea class="form-control" id="education" name="education" rows="3" placeholder="E.g., B.Tech in Computer Science from XYZ University">{{ user.education }}</textarea>
+                        </div>
+
+                        <div class="mb-3">
+                            <label for="experience" class="form-label"><strong>Experience</strong></label>
+                            <textarea class="form-control" id="experience" name="experience" rows="3" placeholder="List any work experience, internships (e.g., Software Intern at Google)">{{ user.experience }}</textarea>
+                        </div>
+
+                        <div class="mb-3">
+                            <label for="projects" class="form-label"><strong>Projects</strong></label>
+                            <textarea class="form-control" id="projects" name="projects" rows="3" placeholder="List your key projects">{{ user.projects }}</textarea>
+                        </div>
+
+                        <div class="mb-3">
+                            <label for="skills" class="form-label"><strong>Skills</strong></label>
+                            <textarea class="form-control mb-2" id="skills" name="skills" rows="2" placeholder="Comma-separated (e.g., Python, SQL, Communication)">{{ user.skills }}</textarea>
+                            
+                            <!-- Display skills as badges -->
+                            {% if user.skills %}
+                                <div>
+                                    {% set skill_list = user.skills.split(',') %}
+                                    {% for skill in skill_list %}
+                                        {% if skill.strip() %}
+                                            <span class="skill-badge">{{ skill.strip() }}</span>
+                                        {% endif %}
+                                    {% endfor %}
+                                </div>
+                            {% endif %}
+                        </div>
+
+                        <button type="submit" class="btn btn-success w-100 mt-2">Save Profile Updates</button>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</body>
+</html>

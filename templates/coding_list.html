@@ -1,0 +1,154 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Coding Challenges — {{ course.title }}</title>
+<style>
+:root {
+  --bg: #0f172a;
+  --card: rgba(30,41,59,0.85);
+  --border: rgba(255,255,255,0.08);
+  --accent: #22d3ee;
+  --success: #4ade80;
+  --danger: #f87171;
+  --warning: #fbbf24;
+  --muted: #94a3b8;
+  --text: #e2e8f0;
+}
+* { margin:0; padding:0; box-sizing:border-box; }
+body { font-family:'Inter',system-ui,sans-serif; background:linear-gradient(135deg,#0f172a,#1e293b); color:var(--text); min-height:100vh; padding:32px; }
+
+.container { max-width:900px; margin:0 auto; }
+
+h1 {
+  font-size:28px; font-weight:700;
+  background:linear-gradient(135deg,#38bdf8,#818cf8);
+  -webkit-background-clip:text; -webkit-text-fill-color:transparent;
+  background-clip:text;
+  margin-bottom:8px;
+}
+.subtitle { color:var(--muted); font-size:15px; margin-bottom:24px; }
+
+.progress-summary {
+  background:var(--card); border:1px solid var(--border);
+  border-radius:14px; padding:20px; margin-bottom:28px;
+  display:flex; align-items:center; gap:20px;
+  backdrop-filter:blur(8px);
+}
+.progress-circle {
+  width:70px; height:70px; border-radius:50%;
+  background:conic-gradient(var(--success) calc(var(--pct) * 1%), rgba(255,255,255,0.08) 0);
+  display:flex; align-items:center; justify-content:center;
+  font-size:18px; font-weight:700;
+}
+.progress-circle .inner {
+  width:54px; height:54px; border-radius:50%;
+  background:var(--bg); display:flex; align-items:center;
+  justify-content:center; font-size:16px; color:var(--success);
+}
+.progress-info .prog-label { font-size:14px; color:var(--muted); }
+.progress-info .prog-value { font-size:20px; font-weight:700; color:var(--text); }
+.progress-info .prog-status { font-size:13px; margin-top:4px; }
+
+.problem-card {
+  display:flex; align-items:center; gap:16px;
+  background:var(--card); border:1px solid var(--border);
+  border-radius:14px; padding:16px 20px; margin-bottom:10px;
+  text-decoration:none; color:var(--text);
+  transition:all 0.25s ease;
+  backdrop-filter:blur(8px);
+}
+.problem-card:hover {
+  transform:translateY(-2px);
+  box-shadow:0 6px 20px rgba(0,0,0,0.3);
+  border-color:var(--accent);
+}
+.problem-card.solved { border-left:3px solid var(--success); }
+
+.problem-num {
+  width:36px; height:36px; border-radius:10px;
+  display:flex; align-items:center; justify-content:center;
+  font-weight:700; font-size:15px;
+  background:rgba(255,255,255,0.06);
+}
+.problem-card.solved .problem-num { background:rgba(74,222,128,0.15); color:var(--success); }
+
+.problem-info { flex:1; }
+.problem-title { font-size:16px; font-weight:600; }
+.problem-meta { font-size:13px; color:var(--muted); margin-top:2px; }
+
+.difficulty-badge {
+  padding:4px 12px; border-radius:6px;
+  font-size:11px; font-weight:700;
+}
+.difficulty-badge.easy { background:#166534; color:#4ade80; }
+.difficulty-badge.medium { background:#92400e; color:#fbbf24; }
+
+.solved-badge {
+  background:rgba(74,222,128,0.15); color:var(--success);
+  padding:4px 10px; border-radius:6px; font-size:12px; font-weight:600;
+}
+
+.back-link {
+  display:inline-block; margin-top:24px;
+  color:var(--muted); text-decoration:none; font-size:14px;
+}
+.back-link:hover { color:var(--accent); }
+
+.pass-info {
+  background:rgba(34,211,238,0.08); border:1px solid rgba(34,211,238,0.2);
+  border-radius:10px; padding:12px 16px; margin-bottom:20px;
+  font-size:14px; color:var(--accent);
+}
+</style>
+</head>
+<body>
+<div class="container">
+  <h1>🧩 Coding Challenges</h1>
+  <div class="subtitle">{{ course.title }} — Solve {{ problems|length }} problems to pass the coding section</div>
+
+  <div class="pass-info">
+    ✅ Pass at least <strong>3 out of {{ problems|length }}</strong> problems to clear the coding section for your certificate.
+  </div>
+
+  {% set solved_count = solved_ids|length %}
+  {% set pct = (solved_count / problems|length * 100) if problems|length > 0 else 0 %}
+
+  <div class="progress-summary" style="--pct:{{ pct|int }}">
+    <div class="progress-circle">
+      <div class="inner">{{ solved_count }}/{{ problems|length }}</div>
+    </div>
+    <div class="progress-info">
+      <div class="prog-value">{{ solved_count }} Solved</div>
+      <div class="prog-label">out of {{ problems|length }} problems</div>
+      <div class="prog-status">
+        {% if solved_count >= 3 %}
+        <span style="color:var(--success);">✓ Coding section passed!</span>
+        {% else %}
+        <span style="color:var(--warning);">{{ 3 - solved_count }} more needed to pass</span>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+
+  {% for p in problems %}
+  <a href="{{ url_for('coding_problem', problem_id=p.id) }}" class="problem-card {% if p.id in solved_ids %}solved{% endif %}">
+    <div class="problem-num">
+      {% if p.id in solved_ids %}✓{% else %}{{ loop.index }}{% endif %}
+    </div>
+    <div class="problem-info">
+      <div class="problem-title">{{ p.title }}</div>
+      <div class="problem-meta">Problem {{ loop.index }} of {{ problems|length }}</div>
+    </div>
+    <span class="difficulty-badge {{ p.difficulty|lower }}">{{ p.difficulty }}</span>
+    {% if p.id in solved_ids %}
+    <span class="solved-badge">Solved ✓</span>
+    {% endif %}
+  </a>
+  {% endfor %}
+
+  <a href="{{ url_for('student_index') }}" class="back-link">← Back to Dashboard</a>
+</div>
+</body>
+</html>

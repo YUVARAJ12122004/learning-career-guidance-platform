@@ -1,0 +1,881 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>{{ problem.title }} — Coding Challenge</title>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/codemirror.min.css">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/theme/dracula.min.css">
+<style>
+:root {
+  --bg: #0f172a;
+  --card: rgba(30,41,59,0.85);
+  --border: rgba(255,255,255,0.08);
+  --accent: #22d3ee;
+  --success: #4ade80;
+  --danger: #f87171;
+  --warning: #fbbf24;
+  --muted: #94a3b8;
+  --text: #e2e8f0;
+}
+
+* { margin:0; padding:0; box-sizing:border-box; }
+body { font-family:'Inter',system-ui,sans-serif; background:var(--bg); color:var(--text); min-height:100vh; }
+
+.topbar {
+  display:flex; justify-content:space-between; align-items:center;
+  padding:12px 24px;
+  background:rgba(15,23,42,0.95);
+  border-bottom:1px solid var(--border);
+  position:sticky; top:0; z-index:100;
+  backdrop-filter:blur(12px);
+}
+.topbar .title { font-size:18px; font-weight:700; color:var(--accent); }
+.difficulty-badge {
+  display:inline-block; padding:3px 10px; border-radius:6px;
+  font-size:11px; font-weight:700; margin-left:8px;
+}
+.difficulty-badge.easy { background:#166534; color:#4ade80; }
+.difficulty-badge.medium { background:#92400e; color:#fbbf24; }
+.back-link { color:var(--accent); text-decoration:none; font-weight:600; font-size:14px; }
+.back-link:hover { text-decoration:underline; }
+
+.main-layout { display:flex; height:calc(100vh - 57px); }
+
+.left-panel {
+  width:40%; min-width:350px;
+  overflow-y:auto; padding:24px;
+  border-right:1px solid var(--border);
+  background:rgba(15,23,42,0.5);
+}
+.left-panel h2 { font-size:22px; margin-bottom:16px; color:#fff; }
+.left-panel h3 { font-size:15px; margin-top:20px; margin-bottom:8px; color:var(--accent); }
+.left-panel p, .left-panel li { font-size:14px; line-height:1.7; color:#cbd5e1; }
+.left-panel code { background:rgba(255,255,255,0.08); padding:2px 6px; border-radius:4px; font-family:'Fira Code',monospace; font-size:13px; color:var(--warning); }
+.left-panel pre { background:rgba(0,0,0,0.4); padding:12px; border-radius:8px; font-size:13px; overflow-x:auto; margin:8px 0; border:1px solid var(--border); }
+
+.example-box {
+  background:rgba(0,0,0,0.3); border:1px solid var(--border);
+  border-radius:10px; padding:14px; margin:10px 0;
+}
+.example-box .label { font-size:12px; font-weight:700; color:var(--muted); text-transform:uppercase; letter-spacing:1px; }
+.example-box .value { font-family:'Fira Code',monospace; font-size:13px; margin-top:4px; color:var(--text); }
+.example-box .expl { font-size:13px; color:#64748b; margin-top:6px; font-style:italic; }
+
+.constraint { font-size:13px; color:#64748b; font-family:'Fira Code',monospace; }
+
+.right-panel { flex:1; display:flex; flex-direction:column; }
+
+.editor-header {
+  display:flex; justify-content:space-between; align-items:center;
+  padding:10px 16px;
+  background:rgba(15,23,42,0.9);
+  border-bottom:1px solid var(--border);
+}
+
+/* Language Selector */
+.lang-select {
+  display:flex; align-items:center; gap:8px;
+}
+.lang-select label { font-size:12px; color:var(--muted); font-weight:600; }
+.lang-select select {
+  background:rgba(255,255,255,0.08); color:var(--warning); border:1px solid var(--border);
+  padding:5px 12px; border-radius:6px; font-size:13px; font-weight:600;
+  cursor:pointer; outline:none;
+}
+.lang-select select:hover { border-color:var(--accent); }
+.lang-select select option { background:#1e293b; color:var(--text); }
+
+.editor-wrap { flex:1; overflow:hidden; }
+.CodeMirror { height:100% !important; font-size:14px; line-height:1.6; }
+
+.bottom-panel {
+  height:250px; min-height:150px;
+  border-top:2px solid var(--border);
+  background:rgba(15,23,42,0.95);
+  display:flex; flex-direction:column;
+}
+.bottom-tabs {
+  display:flex; border-bottom:1px solid var(--border);
+  padding:0 12px;
+}
+.bottom-tab {
+  padding:8px 16px; font-size:13px; color:var(--muted);
+  cursor:pointer; border-bottom:2px solid transparent;
+  transition:all 0.2s;
+}
+.bottom-tab.active { color:var(--accent); border-bottom-color:var(--accent); }
+.bottom-content {
+  flex:1; overflow-y:auto; padding:12px 16px;
+  font-family:'Fira Code',monospace; font-size:13px;
+}
+
+.test-result {
+  display:flex; align-items:flex-start; gap:10px;
+  padding:8px 12px; border-radius:8px; margin-bottom:6px;
+  background:rgba(0,0,0,0.2); border:1px solid var(--border);
+}
+.test-result.pass { border-left:3px solid var(--success); }
+.test-result.fail { border-left:3px solid var(--danger); }
+.test-icon { font-size:16px; margin-top:2px; }
+.test-detail { flex:1; }
+.test-detail .test-label { font-size:12px; font-weight:700; color:var(--muted); }
+.test-detail .test-io { font-size:12px; color:#64748b; margin-top:2px; }
+
+.btn-group { display:flex; gap:8px; }
+.btn {
+  padding:8px 18px; border-radius:8px; border:none;
+  cursor:pointer; font-size:13px; font-weight:600;
+  transition:all 0.2s;
+}
+.btn-run { background:rgba(255,255,255,0.1); color:var(--text); }
+.btn-run:hover { background:rgba(255,255,255,0.15); }
+.btn-submit { background:linear-gradient(135deg,#22d3ee,#818cf8); color:#0f172a; }
+.btn-submit:hover { transform:translateY(-1px); box-shadow:0 4px 12px rgba(34,211,238,0.3); }
+.btn:disabled { opacity:0.5; cursor:not-allowed; }
+
+.status-bar {
+  padding:10px 16px; font-size:13px;
+  display:flex; align-items:center; gap:8px;
+}
+.spinner { display:inline-block; width:16px; height:16px; border:2px solid var(--muted); border-top-color:var(--accent); border-radius:50%; animation:spin 0.6s linear infinite; }
+@keyframes spin { to { transform:rotate(360deg); } }
+
+.pass-banner {
+  background:linear-gradient(135deg,#166534,#14532d);
+  padding:12px 20px; text-align:center;
+  font-weight:700; font-size:15px; color:var(--success);
+  border-bottom:1px solid var(--success);
+}
+
+.problem-nav { display:flex; gap:8px; margin-bottom:20px; }
+.problem-nav a {
+  padding:6px 14px; border-radius:8px; font-size:13px; font-weight:600;
+  text-decoration:none; color:var(--muted);
+  background:rgba(255,255,255,0.05); border:1px solid var(--border);
+  transition:all 0.2s;
+}
+.problem-nav a:hover { background:rgba(255,255,255,0.1); color:var(--text); }
+.problem-nav a.active { background:var(--accent); color:#0f172a; border-color:var(--accent); }
+.problem-nav a.solved { background:rgba(74,222,128,0.15); color:var(--success); border-color:var(--success); }
+
+::-webkit-scrollbar { width:6px; }
+::-webkit-scrollbar-track { background:transparent; }
+::-webkit-scrollbar-thumb { background:rgba(255,255,255,0.1); border-radius:3px; }
+</style>
+</head>
+<body>
+
+<div class="topbar">
+  <div>
+    <span class="title">{{ problem.title }}</span>
+    <span class="difficulty-badge {{ problem.difficulty|lower }}">{{ problem.difficulty }}</span>
+  </div>
+  <div style="display:flex;align-items:center;gap:16px;">
+    <div class="btn-group">
+      <button class="btn btn-run" id="btn-run" onclick="runCode()">▶ Run</button>
+      <button class="btn btn-submit" id="btn-submit" onclick="submitCode()">⬆ Submit</button>
+    </div>
+    <a href="{{ url_for('coding_problems_list', course_id=problem.course_id) }}" class="back-link">← All Problems</a>
+  </div>
+</div>
+
+{% if already_passed %}
+<div class="pass-banner">✅ You have already passed this problem!</div>
+{% endif %}
+
+<div class="main-layout">
+  <div class="left-panel">
+    <div class="problem-nav">
+      {% for p in all_problems %}
+      <a href="{{ url_for('coding_problem', problem_id=p.id) }}"
+         class="{% if p.id == problem.id %}active{% elif p.id in solved_ids %}solved{% endif %}">
+        {% if p.id in solved_ids %}✓{% endif %} {{ loop.index }}
+      </a>
+      {% endfor %}
+    </div>
+
+    <h2>{{ problem.title }}</h2>
+    <div style="white-space:pre-wrap; line-height:1.7;">{{ problem.description }}</div>
+
+    <h3>Examples</h3>
+    {% for ex in examples %}
+    <div class="example-box">
+      <div class="label">Input</div>
+      <div class="value">{{ ex.input }}</div>
+      <div class="label" style="margin-top:8px;">Output</div>
+      <div class="value">{{ ex.output }}</div>
+      {% if ex.explanation %}
+      <div class="expl">💡 {{ ex.explanation }}</div>
+      {% endif %}
+    </div>
+    {% endfor %}
+
+    <h3>Constraints</h3>
+    <div class="constraint" style="white-space:pre-wrap;">{{ problem.constraints }}</div>
+
+    <h3 style="margin-top:24px;">Rules & Guidelines</h3>
+    <div style="background:rgba(255,255,255,0.03); border:1px solid rgba(255,255,255,0.1); border-radius:12px; padding:16px; font-size:13px; color:var(--muted); line-height:1.6;">
+      <ol style="padding-left:18px; margin:0;">
+        <li>Input values will strictly follow the specified format.</li>
+        <li>Do not modify the input unless explicitly instructed.</li>
+        <li>Your solution must handle all edge cases, including:
+          <ul style="list-style-type: disc; padding-left:18px; margin-top:4px;">
+            <li>Negative numbers</li>
+            <li>Zero values</li>
+            <li>Large inputs</li>
+            <li>Duplicate elements (if applicable)</li>
+          </ul>
+        </li>
+        <li style="margin-top:8px;">The output must match the required format exactly.</li>
+        <li style="margin-top:8px;"><strong>Handling Multiple Valid Answers:</strong>
+          <ul style="list-style-type: disc; padding-left:18px; margin-top:4px;">
+            <li>If multiple exist, follow the specified rule (any valid answer, or deterministic rule).</li>
+            <li>If no rule is mentioned, <strong>any valid answer will be accepted</strong>.</li>
+          </ul>
+        </li>
+      </ol>
+    </div>
+  </div>
+
+  <div class="right-panel">
+    <div class="editor-header">
+      <div class="lang-select">
+        <label>Language:</label>
+        <select id="lang-selector" onchange="switchLanguage(this.value)">
+          <option value="python" selected>🐍 Python 3</option>
+          <option value="java">☕ Java</option>
+          <option value="cpp">⚡ C++</option>
+          <option value="c">🔧 C</option>
+          <option value="javascript">🟨 JavaScript</option>
+          <option value="sql">🔍 SQL</option>
+        </select>
+      </div>
+      <div style="font-size:12px;color:var(--muted);">Write your solution • Read input from stdin as JSON (for languages), or write SQL queries</div>
+    </div>
+    
+    <div class="editor-wrap">
+      <textarea id="code-editor">{{ problem.starter_code }}</textarea>
+    </div>
+
+    <div class="bottom-panel">
+      <div class="bottom-tabs">
+        <div class="bottom-tab active">Test Results</div>
+      </div>
+      <div id="status-bar" class="status-bar" style="display:none;">
+        <div class="spinner"></div>
+        <span id="status-text">Running...</span>
+      </div>
+      <div class="bottom-content" id="results-content">
+        <div style="color:var(--muted);">Click ▶ Run to test your code, or ⬆ Submit to validate all test cases.</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/codemirror.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/mode/python/python.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/mode/clike/clike.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/mode/javascript/javascript.min.js"></script>
+<script>
+// ══════════════════════════════════════════════════════════════
+// Multi-Language Starter Code Templates
+// ══════════════════════════════════════════════════════════════
+const problemTitle = "{{ problem.title }}";
+
+const STARTER_CODES = {
+  "Two Sum": {
+    python: `def two_sum(nums, target):
+    # Write your code here
+    pass
+
+# Do NOT modify below this line
+import sys, json
+input_data = json.loads(sys.stdin.read())
+result = two_sum(input_data["nums"], input_data["target"])
+print(json.dumps(result))`,
+
+    java: `import java.util.*;
+import java.util.regex.*;
+
+public class Main {
+    public static int[] twoSum(int[] nums, int target) {
+        // Write your code here
+        for (int i = 0; i < nums.size; i++) { // Placeholder logic
+        }
+        return new int[]{};
+    }
+
+    public static void main(String[] args) {
+        Scanner sc = new Scanner(System.in);
+        StringBuilder sb = new StringBuilder();
+        while (sc.hasNextLine()) sb.append(sc.nextLine());
+        String input = sb.toString();
+        
+        // Simple manual parsing for {"nums":[...],"target":...}
+        try {
+            Pattern pNums = Pattern.compile("\\[([\\d, \\-]+)\\]");
+            Matcher mNums = pNums.matcher(input);
+            int[] nums = new int[0];
+            if (mNums.find()) {
+                String[] parts = mNums.group(1).split(",");
+                nums = new int[parts.length];
+                for(int i=0; i<parts.length; i++) nums[i] = Integer.parseInt(parts[i].trim());
+            }
+            
+            Pattern pTarget = Pattern.compile("\"target\"\\s*:\\s*(-?\\d+)");
+            Matcher mTarget = pTarget.matcher(input);
+            int target = 0;
+            if (mTarget.find()) target = Integer.parseInt(mTarget.group(1));
+
+            int[] result = twoSum(nums, target);
+            System.out.println("[" + result[0] + "," + result[1] + "]");
+        } catch (Exception e) {
+            System.err.println("Error parsing input: " + e.getMessage());
+        }
+    }
+}`,
+
+    cpp: `#include <iostream>
+#include <vector>
+#include <string>
+#include <sstream>
+using namespace std;
+
+vector<int> twoSum(vector<int>& nums, int target) {
+    // Write your code here
+    return {};
+}
+
+// Do NOT modify below this line
+#include <nlohmann/json.hpp>
+using json = nlohmann::json;
+int main() {
+    string input;
+    getline(cin, input);
+    auto data = json::parse(input);
+    vector<int> nums = data["nums"].get<vector<int>>();
+    int target = data["target"].get<int>();
+    auto result = twoSum(nums, target);
+    cout << "[" << result[0] << "," << result[1] << "]" << endl;
+}`,
+
+    c: `#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+
+void twoSum(int* nums, int numsSize, int target, int* result) {
+    // Write your code here
+    // Set result[0] and result[1] to the two indices
+}
+
+// Do NOT modify below this line
+int main() {
+    char buffer[4096];
+    fgets(buffer, sizeof(buffer), stdin);
+    // Simple parsing for {"nums":[...],"target":N}
+    int nums[10000], numsSize = 0, target;
+    char* p = strstr(buffer, "[");
+    if (p) {
+        p++;
+        while (*p != ']') {
+            nums[numsSize++] = atoi(p);
+            while (*p && *p != ',' && *p != ']') p++;
+            if (*p == ',') p++;
+        }
+    }
+    p = strstr(buffer, "\\"target\\":");
+    if (p) target = atoi(p + 9);
+    int result[2] = {0, 0};
+    twoSum(nums, numsSize, target, result);
+    printf("[%d,%d]\\n", result[0], result[1]);
+    return 0;
+}`,
+
+    javascript: `function twoSum(nums, target) {
+    // Write your code here
+    return [];
+}
+
+// Do NOT modify below this line
+const input = require('fs').readFileSync('/dev/stdin', 'utf8');
+const data = JSON.parse(input);
+const result = twoSum(data.nums, data.target);
+console.log(JSON.stringify(result));`
+  },
+
+  "Reverse Integer": {
+    python: `def reverse_integer(x):
+    # Write your code here
+    pass
+
+# Do NOT modify below this line
+import sys, json
+input_data = json.loads(sys.stdin.read())
+result = reverse_integer(input_data["x"])
+print(json.dumps(result))`,
+
+    java: `import java.util.*;
+
+public class Main {
+    public static int reverse(int x) {
+        // Write your code here
+        return 0;
+    }
+
+    public static void main(String[] args) {
+        Scanner sc = new Scanner(System.in);
+        StringBuilder sb = new StringBuilder();
+        while (sc.hasNextLine()) sb.append(sc.nextLine());
+        String input = sb.toString();
+        try {
+            Pattern p = Pattern.compile("\"x\"\\s*:\\s*(-?\\d+)");
+            Matcher m = p.matcher(input);
+            if (m.find()) {
+                int x = Integer.parseInt(m.group(1));
+                System.out.println(reverse(x));
+            }
+        } catch (Exception e) {}
+    }
+}`,
+
+    cpp: `#include <iostream>
+#include <string>
+#include <climits>
+using namespace std;
+
+int reverseInteger(int x) {
+    // Write your code here
+    return 0;
+}
+
+int main() {
+    string input;
+    getline(cin, input);
+    int x = 0;
+    size_t pos = input.find(":");
+    if (pos != string::npos) x = stoi(input.substr(pos+1));
+    cout << reverseInteger(x) << endl;
+}`,
+
+    c: `#include <stdio.h>
+#include <limits.h>
+
+int reverseInteger(int x) {
+    // Write your code here
+    return 0;
+}
+
+int main() {
+    int x; char buf[256];
+    fgets(buf, sizeof(buf), stdin);
+    sscanf(strstr(buf, ":") + 1, "%d", &x);
+    printf("%d\\n", reverseInteger(x));
+    return 0;
+}`,
+
+    javascript: `function reverseInteger(x) {
+    // Write your code here
+    return 0;
+}
+
+const input = require('fs').readFileSync('/dev/stdin', 'utf8');
+const data = JSON.parse(input);
+console.log(JSON.stringify(reverseInteger(data.x)));`
+  },
+
+  "Palindrome Number": {
+    python: `def is_palindrome(x):
+    # Write your code here
+    pass
+
+# Do NOT modify below this line
+import sys, json
+input_data = json.loads(sys.stdin.read())
+result = is_palindrome(input_data["x"])
+print(json.dumps(result))`,
+
+    java: `import java.util.*;
+
+public class Main {
+    public static boolean isPalindrome(int x) {
+        // Write your code here
+        return false;
+    }
+
+    public static void main(String[] args) {
+        Scanner sc = new Scanner(System.in);
+        StringBuilder sb = new StringBuilder();
+        while (sc.hasNextLine()) sb.append(sc.nextLine());
+        String input = sb.toString();
+        try {
+            Pattern p = Pattern.compile("\"x\"\\s*:\\s*(-?\\d+)");
+            Matcher m = p.matcher(input);
+            if (m.find()) {
+                int x = Integer.parseInt(m.group(1));
+                System.out.println(isPalindrome(x) ? "true" : "false");
+            }
+        } catch (Exception e) {}
+    }
+}`,
+
+    cpp: `#include <iostream>
+#include <string>
+using namespace std;
+
+bool isPalindrome(int x) {
+    // Write your code here
+    return false;
+}
+
+int main() {
+    string input;
+    getline(cin, input);
+    int x = 0;
+    size_t pos = input.find(":");
+    if (pos != string::npos) x = stoi(input.substr(pos+1));
+    cout << (isPalindrome(x) ? "true" : "false") << endl;
+}`,
+
+    c: `#include <stdio.h>
+#include <string.h>
+
+int isPalindrome(int x) {
+    // Write your code here
+    return 0;
+}
+
+int main() {
+    int x; char buf[256];
+    fgets(buf, sizeof(buf), stdin);
+    sscanf(strstr(buf, ":") + 1, "%d", &x);
+    printf(isPalindrome(x) ? "true\\n" : "false\\n");
+    return 0;
+}`,
+
+    javascript: `function isPalindrome(x) {
+    // Write your code here
+    return false;
+}
+
+const input = require('fs').readFileSync('/dev/stdin', 'utf8');
+const data = JSON.parse(input);
+console.log(JSON.stringify(isPalindrome(data.x)));`
+  },
+
+  "Longest Substring Without Repeating Characters": {
+    python: `def length_of_longest_substring(s):
+    # Write your code here
+    pass
+
+# Do NOT modify below this line
+import sys, json
+input_data = json.loads(sys.stdin.read())
+result = length_of_longest_substring(input_data["s"])
+print(json.dumps(result))`,
+
+    java: `import java.util.*;
+
+public class Main {
+    public static int lengthOfLongestSubstring(String s) {
+        // Write your code here
+        return 0;
+    }
+
+    public static void main(String[] args) {
+        Scanner sc = new Scanner(System.in);
+        StringBuilder sb = new StringBuilder();
+        while (sc.hasNextLine()) sb.append(sc.nextLine());
+        String input = sb.toString();
+        int start = input.indexOf("\\"s\\":\\"") + 5;
+        int end = input.lastIndexOf("\\"");
+        String s = start < end ? input.substring(start, end) : "";
+        System.out.println(lengthOfLongestSubstring(s));
+    }
+}`,
+
+    cpp: `#include <iostream>
+#include <string>
+#include <unordered_set>
+using namespace std;
+
+int lengthOfLongestSubstring(string s) {
+    // Write your code here
+    return 0;
+}
+
+int main() {
+    string input;
+    getline(cin, input);
+    size_t start = input.find("\\"s\\":\\"") + 5;
+    size_t end = input.rfind("\\"");
+    string s = (start < end) ? input.substr(start, end - start) : "";
+    cout << lengthOfLongestSubstring(s) << endl;
+}`,
+
+    c: `#include <stdio.h>
+#include <string.h>
+
+int lengthOfLongestSubstring(char* s) {
+    // Write your code here
+    return 0;
+}
+
+int main() {
+    char buf[65536], s[65536] = "";
+    fgets(buf, sizeof(buf), stdin);
+    char* p = strstr(buf, "\\"s\\":\\"");
+    if (p) {
+        p += 5;
+        int i = 0;
+        while (*p && *p != '"') s[i++] = *p++;
+        s[i] = 0;
+    }
+    printf("%d\\n", lengthOfLongestSubstring(s));
+    return 0;
+}`,
+
+    javascript: `function lengthOfLongestSubstring(s) {
+    // Write your code here
+    return 0;
+}
+
+const input = require('fs').readFileSync('/dev/stdin', 'utf8');
+const data = JSON.parse(input);
+console.log(JSON.stringify(lengthOfLongestSubstring(data.s)));`
+  },
+
+  "Container With Most Water": {
+    python: `def max_area(height):
+    # Write your code here
+    pass
+
+# Do NOT modify below this line
+import sys, json
+input_data = json.loads(sys.stdin.read())
+result = max_area(input_data["height"])
+print(json.dumps(result))`,
+
+    java: `import java.util.*;
+import java.util.regex.*;
+
+public class Main {
+    public static int maxArea(int[] height) {
+        // Write your code here
+        return 0;
+    }
+
+    public static void main(String[] args) {
+        Scanner sc = new Scanner(System.in);
+        StringBuilder sb = new StringBuilder();
+        while (sc.hasNextLine()) sb.append(sc.nextLine());
+        String input = sb.toString();
+        
+        try {
+            Pattern p = Pattern.compile("\\[([\\d, \\-]+)\\]");
+            Matcher m = p.matcher(input);
+            if (m.find()) {
+                String[] parts = m.group(1).split(",");
+                int[] height = new int[parts.length];
+                for(int i=0; i<parts.length; i++) height[i] = Integer.parseInt(parts[i].trim());
+                System.out.println(maxArea(height));
+            }
+        } catch (Exception e) {
+            System.err.println("Error: " + e.getMessage());
+        }
+    }
+}`,
+
+    cpp: `#include <iostream>
+#include <vector>
+#include <string>
+#include <algorithm>
+using namespace std;
+
+int maxArea(vector<int>& height) {
+    // Write your code here
+    return 0;
+}
+
+int main() {
+    string input;
+    getline(cin, input);
+    vector<int> height;
+    size_t pos = input.find("[");
+    if (pos != string::npos) {
+        pos++;
+        while (input[pos] != ']') {
+            height.push_back(stoi(input.substr(pos)));
+            pos = input.find_first_of(",]", pos);
+            if (input[pos] == ',') pos++;
+        }
+    }
+    cout << maxArea(height) << endl;
+}`,
+
+    c: `#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+
+int maxArea(int* height, int heightSize) {
+    // Write your code here
+    return 0;
+}
+
+int main() {
+    char buf[65536];
+    fgets(buf, sizeof(buf), stdin);
+    int height[100000], size = 0;
+    char* p = strchr(buf, '[');
+    if (p) {
+        p++;
+        while (*p != ']') {
+            height[size++] = atoi(p);
+            while (*p && *p != ',' && *p != ']') p++;
+            if (*p == ',') p++;
+        }
+    }
+    printf("%d\\n", maxArea(height, size));
+    return 0;
+}`,
+
+    javascript: `function maxArea(height) {
+    // Write your code here
+    return 0;
+}
+
+const input = require('fs').readFileSync(process.platform === 'win32' ? 0 : '/dev/stdin', 'utf8');
+const data = JSON.parse(input);
+console.log(JSON.stringify(maxArea(data.height)));`
+  },
+  "SQL Queries": {
+    sql: `-- Write your SQL query here
+SELECT * FROM users;`
+  }
+};
+
+// ══════════════════════════════════════════════════════════════
+// CodeMirror Modes
+// ══════════════════════════════════════════════════════════════
+const LANG_MODES = {
+  python: "python",
+  java: "text/x-java",
+  cpp: "text/x-c++src",
+  c: "text/x-csrc",
+  javascript: "javascript"
+};
+
+const LANG_LABELS = {
+  python: "🐍 Python 3",
+  java: "☕ Java",
+  cpp: "⚡ C++",
+  c: "🔧 C",
+  javascript: "🟨 JavaScript"
+};
+
+// ══════════════════════════════════════════════════════════════
+// Editor Setup
+// ══════════════════════════════════════════════════════════════
+let currentLang = "python";
+
+const editor = CodeMirror.fromTextArea(document.getElementById('code-editor'), {
+  mode: 'python',
+  theme: 'dracula',
+  lineNumbers: true,
+  indentUnit: 4,
+  tabSize: 4,
+  indentWithTabs: false,
+  matchBrackets: true,
+  lineWrapping: false,
+  extraKeys: {
+    "Tab": function(cm) {
+      cm.replaceSelection("    ", "end");
+    }
+  }
+});
+
+function switchLanguage(lang) {
+  currentLang = lang;
+  const templates = STARTER_CODES[problemTitle];
+  if (templates && templates[lang]) {
+    editor.setValue(templates[lang]);
+  }
+  editor.setOption("mode", LANG_MODES[lang] || "python");
+}
+
+const problemId = {{ problem.id }};
+
+function setLoading(loading, text) {
+  document.getElementById('status-bar').style.display = loading ? 'flex' : 'none';
+  document.getElementById('status-text').textContent = text || 'Running...';
+  document.getElementById('btn-run').disabled = loading;
+  document.getElementById('btn-submit').disabled = loading;
+}
+
+function renderResults(data) {
+  const container = document.getElementById('results-content');
+  if (data.error) {
+    container.innerHTML = '<div style="color:var(--danger);white-space:pre-wrap;">' + data.error + '</div>';
+    return;
+  }
+  let html = '';
+  if (data.summary) {
+    const color = data.all_passed ? 'var(--success)' : 'var(--danger)';
+    const icon = data.all_passed ? '✅' : '❌';
+    html += '<div style="font-size:15px;font-weight:700;color:' + color + ';margin-bottom:12px;">' + icon + ' ' + data.summary + '</div>';
+  }
+  if (data.results) {
+    data.results.forEach(function(r, i) {
+      const cls = r.passed ? 'pass' : 'fail';
+      const icon = r.passed ? '✅' : '❌';
+      const actualText = r.actual !== undefined && r.actual !== null ? JSON.stringify(r.actual) : (r.error || 'N/A');
+      html += '<div class="test-result ' + cls + '">' +
+        '<div class="test-icon">' + icon + '</div>' +
+        '<div class="test-detail">' +
+          '<div class="test-label">Test Case ' + (i + 1) + '</div>' +
+          '<div class="test-io">Input: ' + JSON.stringify(r.input) + '</div>' +
+          '<div class="test-io">Expected: ' + JSON.stringify(r.expected) + '</div>' +
+          '<div class="test-io" style="color:' + (r.passed ? 'var(--success)' : 'var(--danger)') + '">Your Output: ' + actualText + '</div>' +
+        '</div></div>';
+    });
+  }
+  container.innerHTML = html;
+}
+
+async function runCode() {
+  setLoading(true, 'Running test cases (' + LANG_LABELS[currentLang] + ')...');
+  try {
+    const resp = await fetch('/run_code', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ problem_id: problemId, code: editor.getValue(), language: currentLang })
+    });
+    const data = await resp.json();
+    renderResults(data);
+  } catch (e) {
+    renderResults({ error: 'Network error: ' + e.message });
+  }
+  setLoading(false);
+}
+
+async function submitCode() {
+  setLoading(true, 'Submitting (' + LANG_LABELS[currentLang] + ')...');
+  try {
+    const resp = await fetch('/submit_code', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ problem_id: problemId, code: editor.getValue(), language: currentLang })
+    });
+    const data = await resp.json();
+    renderResults(data);
+    if (data.all_passed) {
+      setTimeout(function() { location.reload(); }, 1500);
+    }
+  } catch (e) {
+    renderResults({ error: 'Network error: ' + e.message });
+  }
+  setLoading(false);
+}
+</script>
+</body>
+</html>
